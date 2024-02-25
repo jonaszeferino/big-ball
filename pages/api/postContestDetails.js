@@ -6,13 +6,13 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
   }
-  const { cinemaAwardInfo, year, competitors, } = req.body;
+  const { contestDetailsId, contestId, contestDetailName, competitors } = req.body;
   const collection = client.db('big-ball').collection('contest-details');
 
   try {
     const document = {
-      contestDetaislId,
-      contestlId,
+      contestDetailsId,
+      contestId,
       contestDetailName,
       competitors,
     };

@@ -28,6 +28,7 @@ function SelectComponent() {
     }));
   };
 
+  console.log("ID gerado: ",uuid)
 
   const saveGames = () => {
     setIsSaved(false)
@@ -132,6 +133,8 @@ function SelectComponent() {
 
 
       </Center>
+
+      
 
     </ChakraProvider>
   );
