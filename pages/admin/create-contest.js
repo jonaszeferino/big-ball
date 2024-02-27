@@ -28,7 +28,7 @@ function SelectComponent() {
     }));
   };
 
-  console.log("ID gerado: ",uuid)
+  console.log("ID gerado: ", uuid)
 
   const saveGames = () => {
     setIsSaved(false)
@@ -62,9 +62,6 @@ function SelectComponent() {
     <ChakraProvider>
       <Navbar />
       <Sidebar />
-
-
-
       <Center>
         <VStack>
           <FormLabel htmlFor="ordenation">Type</FormLabel>
@@ -134,7 +131,7 @@ function SelectComponent() {
 
       </Center>
 
-      
+
 
     </ChakraProvider>
   );

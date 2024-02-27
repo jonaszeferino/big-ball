@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Select, ChakraProvider, FormLabel, Center, VStack, Input, Button, Progress, Text } from '@chakra-ui/react';
+import { Select, ChakraProvider, FormLabel, Center, VStack, Input, Button, Progress, Text, Box, UnorderedList, ListItem, Checkbox } from '@chakra-ui/react';
 import Navbar from "../../components/Navbar"
 import Sidebar from "../../components/Sidebar"
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +15,29 @@ function SelectComponent() {
     competitors: []
   });
   const [selectedContestId, setSelectedContestId] = useState('');
+  const [reciveCinemaSaved, setReciveCinemaSaved] = useState([])
+  const [selectedDetailsIds, setSelectedDetailsIds] = useState([])
+
+  const [selectedDetails, setSelectedDetails] = useState([]);
+
+  console.log("Array dos selecionados: ", selectedDetails)
+
+  const handleDetailSelection = (event) => {
+    const { checked, id } = event.target;
+    const updatedSelectedDetailsIds = checked
+      ? [...selectedDetailsIds, id]
+      : selectedDetailsIds.filter((detailId) => detailId !== id);
+    setSelectedDetailsIds(updatedSelectedDetailsIds);
+  };
+
+
+  const deleteSelectedDetails = () => {
+    selectedDetails.forEach(detailId => {
+      deleteDetails(selectedContestId, detailId);
+    });
+    setSelectedDetails([]);
+  };
+
   const handleClean = (event) => {
     setSelectedOption('');
     setIsSaved(false);
@@ -33,7 +56,7 @@ function SelectComponent() {
     setSelectedOption(value);
     const selectedContest = contests.find(contest => contest.contestType === value);
     if (selectedContest) {
-      setSelectedContestId(selectedContest.contestId); 
+      setSelectedContestId(selectedContest.contestId);
     }
   };
 
@@ -49,7 +72,7 @@ function SelectComponent() {
     setContestInfo(prevState => {
       const newState = { ...prevState };
       if (newState.competitors.length === 0) {
-         newState.contestlId = selectedContestId;
+        newState.contestlId = selectedContestId;
       }
       return {
         ...newState,
@@ -89,6 +112,31 @@ function SelectComponent() {
       });
   };
 
+  const getContestComplete = () => {
+    console.log("Chamou o conteste completo")
+    fetch('/api/postReciveContestComplete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contestId: selectedContestId
+      })
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Erro ao obter detalhes do concurso');
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setReciveCinemaSaved(data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
   const saveGames = () => {
     setIsSaved(false);
     setIsSaving(true);
@@ -119,12 +167,50 @@ function SelectComponent() {
     }
   };
 
+  const deleteDetails = () => { 
+    console.log("Chamou o delete!: ")
+    if (selectedContestId && selectedDetailsIds.length > 0) { 
+      const data = {
+        contestDetailsIds: selectedDetailsIds 
+      };
+      fetch('/api/deleteContestDetails', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+        .then((response) => {
+          if (response.ok) {
+            setIsSaved(true);
+          } else {
+            throw new Error('Erro ao excluir detalhes do concurso');
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    } else {
+      console.error('Nenhum concurso selecionado ou contestDetailsIds não definido');
+    }
+  };
+
+
   useEffect(() => {
     const selectedContest = contests.find(contest => contest.contestType === selectedOption);
     if (selectedContest) {
       setSelectedContestId(selectedContest.contestId);
     }
   }, [selectedOption, contests]);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      const response = await fetch(`/api/getDetails/${selectedContestId}`);
+      const details = await response.json();
+      setReciveCinemaSaved(details);
+    };
+    fetchDetails();
+  }, [selectedContestId, selectedDetailsIds]);
 
 
   console.log("ID do contest Principal:", selectedContestId)
@@ -135,13 +221,17 @@ function SelectComponent() {
       <Sidebar />
       <Center>
         <VStack>
-          <FormLabel htmlFor="ordenation">Type</FormLabel>
+          <FormLabel htmlFor="ordenation">Escolha a Competição Salva</FormLabel>
           <Select
             id="ordenation"
-            placeholder="Type"
+            placeholder="Escolha a Competição"
             isRequired={true}
+            isDisabled={isSaved}
             value={selectedOption}
-            onChange={handleChange}
+            onChange={(event) => {
+              handleChange(event);
+              getContestComplete();
+            }}
           >
             {contests.map((contest) => (
               <option key={contest._id} value={contest.contestType}>
@@ -149,7 +239,7 @@ function SelectComponent() {
               </option>
             ))}
           </Select>
-  
+
           <br />
           {selectedOption === "cinema-award" && (
             <>
@@ -159,11 +249,12 @@ function SelectComponent() {
                 name="name"
                 placeholder="Nome do Prêmio"
                 type="text"
+                isDisabled={isSaved}
                 value={contestInfo.name}
                 onChange={handleInputChange}
               />
               <br />
-  
+
               <FormLabel htmlFor="championshipYear">Concorrentes</FormLabel>
               {contestInfo.competitors && contestInfo.competitors.map((competitor, index) => (
                 <div key={index}>
@@ -172,6 +263,7 @@ function SelectComponent() {
                     name={`competitor-${index}`}
                     placeholder={`Nome do Competidor ${index + 1}`}
                     type="text"
+                    isDisabled={isSaved}
                     value={competitor}
                     onChange={(event) => handleCompetitorChange(event, index)}
                   />
@@ -180,6 +272,7 @@ function SelectComponent() {
               <Button
                 colorScheme="blue"
                 onClick={addCompetitor}
+                isDisabled={isSaved}
               >
                 Adicionar Concorrente
               </Button>
@@ -199,15 +292,59 @@ function SelectComponent() {
                 colorScheme="blue"
                 onClick={handleClean}
               >
-                Novo Prêmio
+                Novos Candidatos
               </Button>
             </>
           )}
         </VStack>
       </Center>
+      <br />
+      <br />
+      <Center>
+        <Text><strong>Premios Cadastrados: </strong></Text>
+      </Center>
+      <Center>
+
+        <Box>
+          {reciveCinemaSaved.map((contest) => (
+            <Box key={contest._id} marginBottom="20px">
+              <Center>
+                <Text as="h3"><strong>{contest.contestName}</strong></Text>
+              </Center>
+              {contest.contestDetails.map((detail) => (
+                <Box key={detail._id} marginTop="10px">
+                  <Text as="h4"><strong>id: {detail.contestDetailsId}</strong> </Text>
+                  <Text as="h4"><strong>Premio: {detail.contestDetailName}</strong> </Text>
+                  <Checkbox
+                    id={detail.contestDetailsId}
+                    isChecked={selectedDetailsIds.includes(detail.contestDetailsId)}
+                    onChange={(event) => handleDetailSelection(event, detail.contestDetailsId)}
+                  >
+                    {detail.contestDetailName}
+                  </Checkbox>
+                  <UnorderedList>
+                    {detail.competitors && detail.competitors.map((competitor) => (
+                      <ListItem key={competitor}>{competitor}</ListItem>
+                    ))}
+                  </UnorderedList>
+                </Box>
+              ))}
+            </Box>
+          ))}
+        </Box>
+      </Center>
+
+      <Center>
+        <Button onClick={deleteDetails}> Deletar</Button>
+
+
+        {/* <Text>Seleciondos: {selectedDetailsIds.join(', ')}</Text> */}
+
+
+      </Center>
     </ChakraProvider>
   );
-  
+
 }
 
 export default SelectComponent;
