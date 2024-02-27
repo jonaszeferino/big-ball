@@ -17,26 +17,18 @@ function SelectComponent() {
   const [selectedContestId, setSelectedContestId] = useState('');
   const [reciveCinemaSaved, setReciveCinemaSaved] = useState([])
   const [selectedDetailsIds, setSelectedDetailsIds] = useState([])
+  const [deleteActive, setDeleteActive] = useState(false)
 
-  const [selectedDetails, setSelectedDetails] = useState([]);
-
-  console.log("Array dos selecionados: ", selectedDetails)
 
   const handleDetailSelection = (event) => {
-    const { checked, id } = event.target;
+    const { checked } = event.target;
     const updatedSelectedDetailsIds = checked
-      ? [...selectedDetailsIds, id]
-      : selectedDetailsIds.filter((detailId) => detailId !== id);
+      ? [...selectedDetailsIds, event.target.id]
+      : selectedDetailsIds.filter((detailId) => detailId !== event.target.id);
     setSelectedDetailsIds(updatedSelectedDetailsIds);
+    setDeleteActive(updatedSelectedDetailsIds.length > 0);
   };
 
-
-  const deleteSelectedDetails = () => {
-    selectedDetails.forEach(detailId => {
-      deleteDetails(selectedContestId, detailId);
-    });
-    setSelectedDetails([]);
-  };
 
   const handleClean = (event) => {
     setSelectedOption('');
@@ -47,6 +39,7 @@ function SelectComponent() {
       competitors: []
     }));
   };
+
   useEffect(() => {
     getContest();
   }, []);
@@ -113,7 +106,6 @@ function SelectComponent() {
   };
 
   const getContestComplete = () => {
-    console.log("Chamou o conteste completo")
     fetch('/api/postReciveContestComplete', {
       method: 'POST',
       headers: {
@@ -167,11 +159,11 @@ function SelectComponent() {
     }
   };
 
-  const deleteDetails = () => { 
-    console.log("Chamou o delete!: ")
-    if (selectedContestId && selectedDetailsIds.length > 0) { 
+  const deleteDetails = () => {
+
+    if (selectedContestId && selectedDetailsIds.length > 0) {
       const data = {
-        contestDetailsIds: selectedDetailsIds 
+        contestDetailsIds: selectedDetailsIds
       };
       fetch('/api/deleteContestDetails', {
         method: 'DELETE',
@@ -212,8 +204,6 @@ function SelectComponent() {
     fetchDetails();
   }, [selectedContestId, selectedDetailsIds]);
 
-
-  console.log("ID do contest Principal:", selectedContestId)
 
   return (
     <ChakraProvider>
@@ -313,15 +303,18 @@ function SelectComponent() {
               </Center>
               {contest.contestDetails.map((detail) => (
                 <Box key={detail._id} marginTop="10px">
-                  <Text as="h4"><strong>id: {detail.contestDetailsId}</strong> </Text>
                   <Text as="h4"><strong>Premio: {detail.contestDetailName}</strong> </Text>
                   <Checkbox
                     id={detail.contestDetailsId}
                     isChecked={selectedDetailsIds.includes(detail.contestDetailsId)}
-                    onChange={(event) => handleDetailSelection(event, detail.contestDetailsId)}
+                    onChange={(event) => {
+                      handleDetailSelection(event, detail.contestDetailsId);
+
+                    }}
                   >
                     {detail.contestDetailName}
                   </Checkbox>
+
                   <UnorderedList>
                     {detail.competitors && detail.competitors.map((competitor) => (
                       <ListItem key={competitor}>{competitor}</ListItem>
@@ -334,14 +327,10 @@ function SelectComponent() {
         </Box>
       </Center>
 
-      <Center>
-        <Button onClick={deleteDetails}> Deletar</Button>
-
-
-        {/* <Text>Seleciondos: {selectedDetailsIds.join(', ')}</Text> */}
-
-
-      </Center>
+      {deleteActive ?
+        <Center>
+          <Button onClick={deleteDetails} colorScheme="red">Deletar</Button>
+        </Center> : null}
     </ChakraProvider>
   );
 
